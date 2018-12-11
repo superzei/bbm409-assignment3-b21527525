@@ -14,8 +14,8 @@ if __name__ == '__main__':
     train_x = [normalize(x, 255) for x in train['x']]
     train_y = output2binary(train['y'][0])
 
-    MAX_EPOCH = 1
-    BATCH_SIZE = 1
+    MAX_EPOCH = 100
+    BATCH_SIZE = 20
 
     NN = NeuralNetwork([768, 5], learning_rate=[0.005, 0.005], decay_rate=0.0001)
     losses = []

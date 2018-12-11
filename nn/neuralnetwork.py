@@ -72,7 +72,7 @@ class NeuralNetwork:
             self.out_layer.loss(y[index])
 
             if m.get_max_index(self.out_layer.predicted) == m.get_max_index(y[index]):
-                self.hit_count += 1
+                self.hit_count += 1.0
 
         self.in_layer.update()
 
@@ -81,7 +81,7 @@ class NeuralNetwork:
         batched_x = m._batch(sample, batch_size)
         batched_y = m._batch(expected, batch_size)
 
-        for index in range(batch_size):
+        for index in range(len(batched_x)):
             self.__train_batch(batched_x[index], batched_y[index])
 
     def clean(self):
