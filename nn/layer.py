@@ -1,6 +1,6 @@
 import nn.math_ as m
 import numpy as np
-np.random.seed(1)
+np.random.seed(100)
 
 
 class Layer:
@@ -8,6 +8,11 @@ class Layer:
 
         # debugging
         # np.seterr(all='raise')
+
+        # details of layer
+        self.layer_type = "hidden"
+        self.node_count = node_count
+        self.learning_rate = l_rate
 
         # count of weights = count of previous layers nodes
         self.weights = np.array([])
@@ -20,12 +25,7 @@ class Layer:
 
         # calculated error
         self.error = np.array([])
-        self.delta = np.array([])
-
-        # details of layer
-        self.layer_type = "hidden"
-        self.node_count = node_count
-        self.learning_rate = l_rate
+        self.delta = np.zeros((1, self.node_count))
 
         self.previous_layer = None
         self.next_layer = None
@@ -39,7 +39,7 @@ class Layer:
         self.next_layer = next_layer
 
         # initialize weights
-        self.weights = np.random.rand(next_layer.node_count, self.node_count)
+        self.weights = np.random.randn(next_layer.node_count, self.node_count)
 
     def forward(self):
         self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
@@ -47,23 +47,21 @@ class Layer:
         self.next_layer.forward()
 
     def calculate_delta(self):
-        error = np.dot(self.next_layer.delta, self.weights)
-        error = np.dot(error, self.output)
-        error *= self.activation_function(self.input, derivative=True)
-        self.delta = error
+        error = np.dot(self.next_layer.delta, self.weights) * self.output
+        error *= self.activation_function(self.input, derivative=True) * self.learning_rate
+        self.delta += error
 
         self.previous_layer.calculate_delta()
 
     def update(self):
-        delta = (np.matrix(self.next_layer.delta).T * np.matrix(self.output) * self.learning_rate).__array__()
-        self.weights -= delta
+        self.weights -= self.next_layer.delta.T
         self.next_layer.update()
 
     def clean(self):
         """ clean temps, just in case """
         self.output = np.array([])
         self.input = np.array([])
-        self.delta = np.array([])
+        self.delta = np.zeros((1, self.node_count))
 
 
 class InputLayer(Layer):
@@ -76,6 +74,7 @@ class InputLayer(Layer):
         self.next_layer.forward()
 
     def calculate_delta(self):
+        """ stop after reaching input """
         pass
 
 
@@ -87,8 +86,11 @@ class OutputLayer(Layer):
         # expected output
         self.expected = []
 
+        # predicted
+        self.predicted = []
+
         # calculated loss for every node on output layer
-        self.cost = []
+        self.cost = 0.0
 
         # functions for error calculation
         self.loss_func = m.cross_entropy
@@ -99,20 +101,23 @@ class OutputLayer(Layer):
     def loss(self, expected):
         """ calculate cost for given expected outputs """
         self.expected = expected
-        self.cost = self.loss_func(self.output, self.expected)
+        self.cost += self.loss_func(self.output, self.expected)
         self.calculate_delta()
 
     def calculate_delta(self):
-        self.delta = np.multiply(self.loss_func(self.output, self.expected, derivative=True),
-                                 self.activation_function(self.input, derivative=True))
+        # self.delta = np.multiply(self.loss_func(self.predicted, self.expected, derivative=True),
+        #                          self.activation_function(self.input, derivative=True))
 
-        self.delta = np.dot(self.delta, m.softmax(self.input, derivative=True))
+        # self.delta = np.dot(self.delta, m.softmax(self.output, derivative=True))
+        self.delta += np.multiply(np.subtract(self.predicted, self.expected),
+                                  self.activation_function(self.input, derivative=True))
 
         self.previous_layer.calculate_delta()
 
     def forward(self):
         self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
-        self.output = m.softmax(self.activation_function(self.input))
+        self.output = self.activation_function(self.input)
+        self.predicted = m.softmax(self.activation_function(self.input))
 
     def update(self):
         """ stop after reaching output layer """
@@ -121,5 +126,3 @@ class OutputLayer(Layer):
     def clean(self):
         """ squeaky clean """
         super().clean()
-        self.cost = np.array([])
-        self.delta = np.array([])

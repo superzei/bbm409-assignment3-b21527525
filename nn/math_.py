@@ -1,6 +1,6 @@
 import numpy as np
-from math import e
-from decimal import Decimal
+
+# stop on overflow and underflow
 np.seterr(all='raise')
 
 
@@ -28,7 +28,7 @@ def cross_entropy(batch, expected, derivative=False):
     if derivative:
         # derivation of loss used for backpropagation and only done for single input/output pair instead of whole batch
         # do not give 2d+ matrices
-        return -(np.array(expected) / np.array(batch))
+        return -np.array(expected) / np.array(batch)
         # return -np.multiply(expected, np.subtract(1, batch))
 
     # total = -np.sum(np.dot(expected, np.log(batch)) + np.multiply(np.subtract(1, expected),
