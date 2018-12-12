@@ -1,25 +1,25 @@
 from nn.neuralnetwork import NeuralNetwork
-import numpy as np
-from nn.math_ import output2binary, normalize, _batch
+from nn.math_ import output2binary, normalize
 from data.code.readImage import load_data
 import matplotlib.pyplot as plt
 
 
+DEFAULT_DUMP_FILE = 'trained_model.pkl'
+MAX_EPOCH = 250
+BATCH_SIZE = 5
+
+
 if __name__ == '__main__':
-    # TODO: 1. shit is not learning, encourage it so
-    # TODO: 2. add bias (optional, shit is not helping)
-    # TODO: 3. batch is somehow broken, fix it asap or remove it completely
-    # TODO: 4. try to remember the this one
+    # TODO: 1. add bias (optional, shit is not helping)
+    # TODO: 2. prevent overfit (add normalization like l1/l2)
     train, validation, test = load_data()
     train_x = [normalize(x, 255) for x in train['x']]
     train_y = output2binary(train['y'][0])
 
-    MAX_EPOCH = 100
-    BATCH_SIZE = 20
-
-    NN = NeuralNetwork([768, 5], learning_rate=[0.005, 0.005], decay_rate=0.0001)
+    NN = NeuralNetwork([768, 500, 5], learning_rate=[0.0005, 0.02], decay_rate=0.0001)
     losses = []
     accuracies = []
+
     for epoch in range(MAX_EPOCH):
         # for i, sample in enumerate(train_x):
         #    NN.train(sample, train_y[i])
@@ -35,9 +35,12 @@ if __name__ == '__main__':
         print("Hit count: %d" % NN.hit_count)
         print("-"*20+"\n")
 
-        losses.append(NN.out_layer.cost)
-        accuracies.append((NN.hit_count / len(train_x)) * 2)
+        losses.append(NN.out_layer.cost / len(train_x))
+        accuracies.append((NN.hit_count / len(train_x)))
         NN.clean()
+
+        # save model to file
+        NN.dump(DEFAULT_DUMP_FILE)
 
     # graph accuracy and loss
     plt.plot([i for i in range(MAX_EPOCH)], losses, label='Loss')

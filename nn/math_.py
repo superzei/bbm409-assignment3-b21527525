@@ -33,8 +33,17 @@ def cross_entropy(batch, expected, derivative=False):
 
     # total = -np.sum(np.dot(expected, np.log(batch)) + np.multiply(np.subtract(1, expected),
     #  np.log(np.subtract(1, batch))))
-    total = -(np.sum(np.dot(expected, np.log(batch))))
+    preds = np.clip(batch, 1e-12, 1 - 1e-12)
+    total = -(np.sum(expected * np.log(preds+1e-9))) / preds.shape[0]
     return total
+
+
+def delta_softmax_cross_entropy(x, y):
+    """
+    combined derivative for softmax and cross entropy
+    gives derivative of loss w.r.t. output
+    """
+    return np.subtract(x, y)
 
 
 def signum(x):
@@ -85,3 +94,19 @@ def _batch(arr, n):
 
 def get_max_index(x):
     return list(x).index(max(x))
+
+
+def unison_shuffle(x, y):
+    """ shuffles two lists in unison """
+    c = np.c_[x.reshape(len(x), -1), y.reshape(len(y), -1)]
+    x_s = c[:, :x.size // len(x)].reshape(x.shape)
+    y_s = c[:, x.size // len(x):].reshape(y.shape)
+    np.random.shuffle(c)
+    return x_s, y_s
+
+
+def validate(model, validation_data):
+    x = normalize(validation_data['x'], 255)
+    y = output2binary(validation_data['y'][0])
+    hit_rate = sum([get_max_index(model.predict(x[i])) == get_max_index(y[i]) for i in range(len(x))])
+    return hit_rate

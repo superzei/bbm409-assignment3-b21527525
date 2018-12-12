@@ -1,14 +1,12 @@
 import nn.math_ as m
 import numpy as np
+from math import log
 np.random.seed(100)
 
 
 class Layer:
+    """ a neural network layer object """
     def __init__(self, node_count, l_rate, activation_function=m.sigmoid):
-
-        # debugging
-        # np.seterr(all='raise')
-
         # details of layer
         self.layer_type = "hidden"
         self.node_count = node_count
@@ -47,14 +45,13 @@ class Layer:
         self.next_layer.forward()
 
     def calculate_delta(self):
-        error = np.dot(self.next_layer.delta, self.weights) * self.output
-        error *= self.activation_function(self.input, derivative=True) * self.learning_rate
-        self.delta += error
+        error = np.dot(self.next_layer.delta, self.weights) * self.activation_function(self.input, derivative=True)
+        self.delta = error
 
         self.previous_layer.calculate_delta()
 
     def update(self):
-        self.weights -= self.next_layer.delta.T
+        self.weights -= (self.next_layer.delta * self.output.reshape(-1, 1) * self.learning_rate).T
         self.next_layer.update()
 
     def clean(self):
@@ -65,6 +62,7 @@ class Layer:
 
 
 class InputLayer(Layer):
+    """ a neural network input layer """
     def __init__(self, node_count, l_rate):
         super(InputLayer, self).__init__(node_count, l_rate)
         self.layer_type = "input"
@@ -79,6 +77,7 @@ class InputLayer(Layer):
 
 
 class OutputLayer(Layer):
+    """ a neural network output layer """
     def __init__(self, node_count, l_rate, activation_function=m.relu):
         super(OutputLayer, self).__init__(node_count, l_rate, activation_function=activation_function)
         self.layer_type = "output"
@@ -101,23 +100,19 @@ class OutputLayer(Layer):
     def loss(self, expected):
         """ calculate cost for given expected outputs """
         self.expected = expected
-        self.cost += self.loss_func(self.output, self.expected)
-        self.calculate_delta()
+        self.cost += self.loss_func(self.predicted, self.expected)
 
     def calculate_delta(self):
-        # self.delta = np.multiply(self.loss_func(self.predicted, self.expected, derivative=True),
-        #                          self.activation_function(self.input, derivative=True))
-
-        # self.delta = np.dot(self.delta, m.softmax(self.output, derivative=True))
-        self.delta += np.multiply(np.subtract(self.predicted, self.expected),
-                                  self.activation_function(self.input, derivative=True))
+        # self.delta = np.dot(self.loss_func(self.output, self.expected, derivative=True),
+        #                          m.softmax(self.input, derivative=True))
+        self.delta = m.delta_softmax_cross_entropy(self.predicted, self.expected)
 
         self.previous_layer.calculate_delta()
 
     def forward(self):
         self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
         self.output = self.activation_function(self.input)
-        self.predicted = m.softmax(self.activation_function(self.input))
+        self.predicted = self.output
 
     def update(self):
         """ stop after reaching output layer """
