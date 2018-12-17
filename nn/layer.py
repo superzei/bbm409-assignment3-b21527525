@@ -6,10 +6,10 @@ np.random.seed(100)
 
 class Layer:
     """ a neural network layer object """
-    def __init__(self, node_count, l_rate, activation_function=m.sigmoid):
+    def __init__(self, layer_info, l_rate):
         # details of layer
         self.layer_type = "hidden"
-        self.node_count = node_count
+        self.node_count = layer_info["node_count"]
         self.learning_rate = l_rate
 
         # count of weights = count of previous layers nodes
@@ -29,7 +29,7 @@ class Layer:
         self.next_layer = None
 
         # function used to activate nodes in this layer
-        self.activation_function = activation_function
+        self.activation_function = m.select_activation(layer_info["activation"])
 
     def attach(self, previous_layer, next_layer):
         """ attach layer other layers to create a network """
@@ -63,8 +63,8 @@ class Layer:
 
 class InputLayer(Layer):
     """ a neural network input layer """
-    def __init__(self, node_count, l_rate):
-        super(InputLayer, self).__init__(node_count, l_rate)
+    def __init__(self, layer_info, l_rate):
+        super(InputLayer, self).__init__(layer_info, l_rate)
         self.layer_type = "input"
 
     def forward(self):
@@ -78,8 +78,8 @@ class InputLayer(Layer):
 
 class OutputLayer(Layer):
     """ a neural network output layer """
-    def __init__(self, node_count, l_rate, activation_function=m.relu):
-        super(OutputLayer, self).__init__(node_count, l_rate, activation_function=activation_function)
+    def __init__(self, layer_info, l_rate, loss=m.cross_entropy):
+        super(OutputLayer, self).__init__(layer_info, l_rate)
         self.layer_type = "output"
 
         # expected output
@@ -92,7 +92,7 @@ class OutputLayer(Layer):
         self.cost = 0.0
 
         # functions for error calculation
-        self.loss_func = m.cross_entropy
+        self.loss_func = loss
 
     def attach(self, previous_layer, next_layer):
         self.previous_layer = previous_layer

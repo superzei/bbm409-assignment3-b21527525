@@ -4,6 +4,38 @@ import numpy as np
 np.seterr(all='raise')
 
 
+def select_activation(string):
+    """
+    Select activation function
+    :param string: name of the activation
+    :return: method of activation
+    """
+    string = string.lower()
+
+    if string == 'sigmoid':
+        return sigmoid
+    elif string == 'softmax':
+        return softmax
+    elif string == '':
+        return None
+    else:
+        raise ValueError('{} activation function does not exists in math_ file.'.format(string))
+
+
+def select_loss(string):
+    """
+    select a loss function from string
+    :param string: name of the loss function
+    :return: loss function
+    """
+    string = string.lower()
+
+    if string == 'cross_entropy':
+        return cross_entropy
+    else:
+        raise ValueError('{} loss function does not exists in math_ file. Check your input.'.format(string))
+
+
 def sigmoid(x, derivative=False):
     """ logistic function for matrix x """
     if derivative:
@@ -103,10 +135,3 @@ def unison_shuffle(x, y):
     y_s = c[:, x.size // len(x):].reshape(y.shape)
     np.random.shuffle(c)
     return x_s, y_s
-
-
-def validate(model, validation_data):
-    x = normalize(validation_data['x'], 255)
-    y = output2binary(validation_data['y'][0])
-    hit_rate = sum([get_max_index(model.predict(x[i])) == get_max_index(y[i]) for i in range(len(x))])
-    return hit_rate

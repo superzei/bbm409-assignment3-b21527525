@@ -1,2 +1,5 @@
 .idea/
 .git/
+main.py
+data/flowers/
+trained_models/
