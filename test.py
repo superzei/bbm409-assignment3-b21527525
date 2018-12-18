@@ -39,5 +39,3 @@ if __name__ == '__main__':
     # get results
     print("Accuracy: %f" % ((nn.hit_count / len(test_x)) * 100))
     print("Hit count: %d" % nn.hit_count)
-
-    print('done')

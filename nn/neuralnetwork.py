@@ -6,7 +6,7 @@ import json
 
 
 class NeuralNetwork:
-    def __init__(self, shape, config):
+    def __init__(self, shape, config, dropout_probability=0.0):
         """
         Simple neural network object
         :param shape: dictionary of layers. Contains information required to build network
@@ -15,6 +15,7 @@ class NeuralNetwork:
         self.l_rate_bound = config['learning_rate_bounds']
         self.l_rate = self.l_rate_bound[0]
         self.decay_rate = config['decay_rate']
+        self.dropout_probability = dropout_probability
 
         self.epochs = config['epochs']
         self.loss_function = m.select_loss(config['loss'])
@@ -47,7 +48,7 @@ class NeuralNetwork:
 
     def train(self, sample, output):
         """ train network by given input output pair / DEPRECIATED FOR BATCH """
-        self.predict(sample)
+        self.predict(sample, dropout_probability=self.dropout_probability)
         self.out_layer.loss(output)
 
         if m.get_max_index(self.out_layer.output) != m.get_max_index(output):
@@ -55,20 +56,23 @@ class NeuralNetwork:
 
         self.in_layer.update()
 
-    def predict(self, sample):
+    def predict(self, sample, dropout_probability=0.0):
         """ predict an output for given sample """
         self.in_layer.input = sample
-        self.in_layer.forward()
+        self.in_layer.forward(dropout_probability=dropout_probability)
         return self.out_layer.output
 
     def bulk_predict(self, x, y):
         """ predicts all the sample in given array """
+
+        # clear all the temporary data
         self.reset()
 
         for index, sample in enumerate(x):
-            self.predict(sample)
+            self.predict(sample, dropout_probability=self.dropout_probability)
             self.out_layer.loss(y[index])
 
+            # gimme the hit rate
             if m.get_max_index(self.out_layer.predicted) == m.get_max_index(y[index]):
                 self.hit_count += 1.0
 
@@ -79,10 +83,10 @@ class NeuralNetwork:
 
     def decay(self):
         """ decay the learning rate """
-        if self.l_rate > self.l_rate_bound[0] and self.l_rate - self.decay_rate > 0.0:
+        if self.l_rate > self.l_rate_bound[1] and self.l_rate - self.decay_rate > 0.0:
             self.l_rate -= self.decay_rate
-        elif self.l_rate - self.decay_rate <= 0.0 or self.l_rate < self.l_rate_bound[0]:
-            self.l_rate = self.l_rate_bound[0]
+        elif self.l_rate - self.decay_rate <= 0.0 or self.l_rate < self.l_rate_bound[1]:
+            self.l_rate = self.l_rate_bound[1]
 
         for layer in self.network:
             layer.learning_rate = self.l_rate
@@ -92,9 +96,10 @@ class NeuralNetwork:
         self.reset()
 
         for index, batch in enumerate(x):
-            self.predict(batch)
+            self.predict(batch, dropout_probability=self.dropout_probability)
             self.out_layer.loss(y[index])
 
+            # increment hit rate if, well, hit
             if m.get_max_index(self.out_layer.predicted) == m.get_max_index(y[index]):
                 self.hit_count += 1.0
 
@@ -103,11 +108,15 @@ class NeuralNetwork:
 
     def fit(self, sample, expected):
         """ batch, batch all day long, batch while I sing this song """
+
+        # shuffle the data
         shuffled_sample, shuffled_expected = m.unison_shuffle(np.array(sample), np.array(expected))
 
+        # batch up
         batched_x = m._batch(shuffled_sample, self.batch_size)
         batched_y = m._batch(shuffled_expected, self.batch_size)
 
+        # learning time
         for index in range(len(batched_x)):
             self.__train_batch(batched_x[index], batched_y[index])
 
@@ -124,6 +133,7 @@ class NeuralNetwork:
 
     @staticmethod
     def load(fname):
+        """ load model from file using pickle """
         with open(fname, 'rb') as inp:
             model = pickle.load(inp)
 
@@ -133,6 +143,7 @@ class NeuralNetwork:
         return model
 
     def validate(self, validation_data):
+        self.clean()
         x = m.normalize(validation_data['x'], 255)
         y = m.output2binary(validation_data['y'][0])
         hit_rate = sum([m.get_max_index(self.predict(x[i])) == m.get_max_index(y[i]) for i in range(len(x))])
@@ -140,7 +151,7 @@ class NeuralNetwork:
 
     @staticmethod
     def create(fpath):
-        """ create model from template(file) """
+        """ create model from template(json file) """
         model_info = json.load(open(fpath))
 
         model_shape = model_info['model']

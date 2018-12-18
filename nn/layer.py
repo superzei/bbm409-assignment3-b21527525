@@ -39,10 +39,11 @@ class Layer:
         # initialize weights
         self.weights = np.random.randn(next_layer.node_count, self.node_count)
 
-    def forward(self):
+    def forward(self, dropout_probability=0.0):
         self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
-        self.output = self.activation_function(self.input)
-        self.next_layer.forward()
+        self.output = self.dropout(self.activation_function(self.input), drop_probability=dropout_probability)
+        # self.output = self.activation_function(self.input)
+        self.next_layer.forward(dropout_probability=dropout_probability)
 
     def calculate_delta(self):
         error = np.dot(self.next_layer.delta, self.weights) * self.activation_function(self.input, derivative=True)
@@ -60,6 +61,19 @@ class Layer:
         self.input = np.array([])
         self.delta = np.zeros((1, self.node_count))
 
+    @staticmethod
+    def dropout(x, drop_probability=0.5):
+        """ dropout regularization """
+        keep_probability = 1 - drop_probability
+        mask = np.random.uniform(0.0, 1.0, size=x.shape) < keep_probability
+
+        if keep_probability > 0.0:
+            scale = (1 / keep_probability)
+        else:
+            scale = 0.0
+
+        return mask * x * scale
+
 
 class InputLayer(Layer):
     """ a neural network input layer """
@@ -67,9 +81,9 @@ class InputLayer(Layer):
         super(InputLayer, self).__init__(layer_info, l_rate)
         self.layer_type = "input"
 
-    def forward(self):
+    def forward(self, dropout_probability=0.0):
         self.output = np.array(self.input)
-        self.next_layer.forward()
+        self.next_layer.forward(dropout_probability=dropout_probability)
 
     def calculate_delta(self):
         """ stop after reaching input """
@@ -103,15 +117,21 @@ class OutputLayer(Layer):
         self.cost += self.loss_func(self.predicted, self.expected)
 
     def calculate_delta(self):
-        # self.delta = np.dot(self.loss_func(self.output, self.expected, derivative=True),
-        #                          m.softmax(self.input, derivative=True))
-        self.delta = m.delta_softmax_cross_entropy(self.predicted, self.expected)
+        if self.activation_function == m.softmax:
+            self.delta = np.dot(self.loss_func(self.output, self.expected, derivative=True),
+                                self.activation_function(self.input, derivative=True))
+        else:
+            self.delta = np.multiply(self.loss_func(self.output, self.expected, derivative=True),
+                                     self.activation_function(self.input, derivative=True))
+
+        # self.delta = m.delta_softmax_cross_entropy(self.predicted, self.expected)
 
         self.previous_layer.calculate_delta()
 
-    def forward(self):
+    def forward(self, dropout_probability=0.0):
         self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
         self.output = self.activation_function(self.input)
+        # self.output = self.activation_function(self.input)
         self.predicted = self.output
 
     def update(self):

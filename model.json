@@ -10,7 +10,7 @@
 
     "hidden_1":
     {
-      "node_count": 500,
+      "node_count": 10,
       "activation": "sigmoid"
     },
 
