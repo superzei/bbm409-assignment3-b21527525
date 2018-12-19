@@ -10,7 +10,7 @@
 
     "hidden_1":
     {
-      "node_count": 500,
+      "node_count": 10,
       "activation": "sigmoid"
     },
 
@@ -25,8 +25,8 @@
   {
     "loss": "cross_entropy",
     "batch_size": 5,
-    "epochs": 150,
-    "learning_rate_bounds": [0.02, 0.0005],
+    "epochs": 300,
+    "learning_rate_bounds": [0.0005, 0.02],
     "decay_rate": 0.0005
   }
 }
