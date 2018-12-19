@@ -13,7 +13,7 @@ class NeuralNetwork:
         :param config: configuration for the neural network
         """
         self.l_rate_bound = config['learning_rate_bounds']
-        self.l_rate = self.l_rate_bound[0]
+        self.l_rate = self.l_rate_bound[1]
         self.decay_rate = config['decay_rate']
 
         self.epochs = config['epochs']

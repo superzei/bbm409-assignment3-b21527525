@@ -15,6 +15,9 @@ class Layer:
         # count of weights = count of previous layers nodes
         self.weights = np.array([])
 
+        # biases
+        self.bias = np.array([])
+
         # raw values of nodes
         self.input = np.array([])
 
@@ -22,7 +25,7 @@ class Layer:
         self.output = np.array([])
 
         # calculated error
-        self.error = np.array([])
+        self.previous_delta = np.array([])
         self.delta = np.zeros((1, self.node_count))
 
         self.previous_layer = None
@@ -39,8 +42,11 @@ class Layer:
         # initialize weights
         self.weights = np.random.randn(next_layer.node_count, self.node_count)
 
+        # initialize bias
+        self.bias = np.random.randn(next_layer.node_count)
+
     def forward(self):
-        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
+        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output) + self.previous_layer.bias
         self.output = self.activation_function(self.input)
         self.next_layer.forward()
 
@@ -51,7 +57,9 @@ class Layer:
         self.previous_layer.calculate_delta()
 
     def update(self):
-        self.weights -= (self.next_layer.delta * self.output.reshape(-1, 1) * self.learning_rate).T
+        update = (self.next_layer.delta * self.output.reshape(-1, 1) * self.learning_rate).T
+        self.weights -= update
+        self.bias -= (self.next_layer.delta * self.learning_rate)
         self.next_layer.update()
 
     def clean(self):
@@ -110,7 +118,7 @@ class OutputLayer(Layer):
         self.previous_layer.calculate_delta()
 
     def forward(self):
-        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
+        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output) + self.previous_layer.bias
         self.output = self.activation_function(self.input)
         self.predicted = self.output
 
