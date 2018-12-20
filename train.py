@@ -10,6 +10,7 @@ DEFAULT_DUMP_FILE = 'trained_model.pkl'  # default model file name
 SHOW_PLOT = True  # show graph of change in accuracy and loss over epochs
 VALIDATE_DATA = True  # use a validation on training (requires validation path from cli)
 DUMP_BEST_MODEL = True  # only dump model if accuracy improved
+VISUALIZE = False  # visualize output layers parameters as image, only for single layer
 
 
 def parameter_parse(argv):
@@ -25,8 +26,8 @@ def parameter_parse(argv):
                         dest='model_name', help='name for model, if not given default name will be used')
     parser.add_argument('--template_path', '-t', required=False, type=str, default='model.json',
                         dest='template_path', help='template from file, if not given default path will be used')
-    parser.add_argument('--validation_path', '-v', required=False, type=str, default='data/code/validation.mat'
-                        , dest='validation_path', help='path to validation data')
+    parser.add_argument('--validation_path', '-v', required=False, type=str, default='data/code/validation.mat',
+                        dest='validation_path', help='path to validation data')
 
     # TODO: add model training from json file
 
@@ -55,6 +56,10 @@ if __name__ == '__main__':
     # build model from template
     NN = NeuralNetwork.create(args['template_path'])
 
+    if len(NN.network) > 2:
+        # if not single layer network do not visualize
+        VISUALIZE = False
+
     # log the data for graph
     losses = []
     accuracies = []
@@ -62,7 +67,7 @@ if __name__ == '__main__':
 
     for epoch in range(NN.epochs):
 
-        NN.dropout_probability = 0.5
+        NN.dropout_probability = NN.default_dropout_chance
         NN.fit(train_x, train_y)
 
         # get results
@@ -106,22 +111,37 @@ if __name__ == '__main__':
 
     if SHOW_PLOT:
         # graph accuracies and loss
-        fig, axs = plt.subplots(1, 2)
+        fig, axs = plt.subplots(4, 2) if VISUALIZE else plt.subplots(1, 2)
+        plt0 = axs[0, 0] if VISUALIZE else axs[0]
+        plt1 = axs[0, 1] if VISUALIZE else axs[1]
 
         if VALIDATE_DATA:
             # also plot validation over epochs if available
-            axs[0].plot([i for i in range(NN.epochs)], validation_accuracies, label='Validation accuracy')
+            plt0.plot([i for i in range(NN.epochs)], validation_accuracies, label='Validation accuracy')
 
-        axs[0].plot([i for i in range(NN.epochs)], accuracies, label='Training Accuracy')
-        axs[1].plot([i for i in range(NN.epochs)], losses, label='Loss')
+        plt0.plot([i for i in range(NN.epochs)], accuracies, label='Training Accuracy')
+        plt1.plot([i for i in range(NN.epochs)], losses, label='Loss')
 
-        axs[0].set_xlabel("Epochs")
-        axs[1].set_xlabel("Epochs")
+        plt0.set_xlabel("Epochs")
+        plt1.set_xlabel("Epochs")
 
-        axs[0].set_title("Accuracy changes over epochs")
-        axs[1].set_title("Loss change over epochs")
+        plt0.set_title("Accuracy changes over epochs")
+        plt1.set_title("Loss change over epochs")
 
-        axs[0].legend()
-        axs[1].legend()
+        if VISUALIZE:
+            ims = []
+            for im in NN.out_layer.previous_layer.weights:
+                ims.append(im.reshape(32, 24))
+
+            axs[1, 0].imshow(ims[0])
+            axs[1, 1].imshow(ims[1])
+            axs[2, 0].imshow(ims[2])
+            axs[2, 1].imshow(ims[3])
+            axs[3, 0].imshow(ims[4])
+
+            fig.delaxes(axs[3, 1])
+
+        plt0.legend()
+        plt1.legend()
 
         plt.show()

@@ -166,7 +166,7 @@ def normalize(arr, top):
     return np.divide(arr, top)
 
 
-def _batch(arr, n):
+def batch_(arr, n):
     """ batches given array into parts having equal and n number of elements """
     return [arr[i:min(i + n, len(arr))] for i in range(0, len(arr), n)]
 

@@ -13,13 +13,17 @@ class NeuralNetwork:
         :param config: configuration for the neural network
         """
         self.l_rate_bound = config['learning_rate_bounds']
-        self.l_rate = self.l_rate_bound[0]
+        self.l_rate = self.l_rate_bound[1]
         self.decay_rate = config['decay_rate']
-        self.dropout_probability = dropout_probability
+        self.default_dropout_chance = dropout_probability
+        self.dropout_probability = self.default_dropout_chance
+        self.momentum_parameter = config['momentum_parameter']
 
         self.epochs = config['epochs']
         self.loss_function = m.select_loss(config['loss'])
         self.batch_size = config['batch_size']
+
+        self.batch_loss = 0.0
 
         # create input and output layers
         input_layer = InputLayer(shape["input"], self.l_rate)
@@ -54,7 +58,7 @@ class NeuralNetwork:
         if m.get_max_index(self.out_layer.output) != m.get_max_index(output):
             self.hit_count += 1
 
-        self.in_layer.update()
+        self.in_layer.update(momentum_parameter=self.momentum_parameter)
 
     def predict(self, sample, dropout_probability=0.0):
         """ predict an output for given sample """
@@ -83,16 +87,16 @@ class NeuralNetwork:
 
     def decay(self):
         """ decay the learning rate """
-        if self.l_rate > self.l_rate_bound[1] and self.l_rate - self.decay_rate > 0.0:
+        if self.l_rate > self.l_rate_bound[0] and self.l_rate - self.decay_rate > 0.0:
             self.l_rate -= self.decay_rate
-        elif self.l_rate - self.decay_rate <= 0.0 or self.l_rate < self.l_rate_bound[1]:
-            self.l_rate = self.l_rate_bound[1]
+        elif self.l_rate - self.decay_rate <= 0.0 or self.l_rate < self.l_rate_bound[0]:
+            self.l_rate = self.l_rate_bound[0]
 
         for layer in self.network:
             layer.learning_rate = self.l_rate
 
     def __train_batch(self, x, y):
-        """ train a batch, this method modified a lot and is shadow of it's former self """
+        """ trains whole batch then calculates loss """
         self.reset()
 
         for index, batch in enumerate(x):
@@ -103,8 +107,14 @@ class NeuralNetwork:
             if m.get_max_index(self.out_layer.predicted) == m.get_max_index(y[index]):
                 self.hit_count += 1.0
 
+        # calculate batch loss
+        self.batch_loss += (self.out_layer.cost / len(x))
+
+        # calculate all delta
         self.out_layer.calculate_delta()
-        self.in_layer.update()
+
+        # update weights
+        self.in_layer.update(momentum_parameter=self.momentum_parameter)
 
     def fit(self, sample, expected):
         """ batch, batch all day long, batch while I sing this song """
@@ -113,8 +123,8 @@ class NeuralNetwork:
         shuffled_sample, shuffled_expected = m.unison_shuffle(np.array(sample), np.array(expected))
 
         # batch up
-        batched_x = m._batch(shuffled_sample, self.batch_size)
-        batched_y = m._batch(shuffled_expected, self.batch_size)
+        batched_x = m.batch_(shuffled_sample, self.batch_size)
+        batched_y = m.batch_(shuffled_expected, self.batch_size)
 
         # learning time
         for index in range(len(batched_x)):
@@ -125,6 +135,7 @@ class NeuralNetwork:
         self.decay()
         self.hit_count = 0.0
         self.out_layer.cost = 0.0
+        self.batch_loss = 0.0
 
     def dump(self, fname):
         """ dump the model to file """
@@ -143,6 +154,7 @@ class NeuralNetwork:
         return model
 
     def validate(self, validation_data):
+        """ validate model, depreciated """
         self.clean()
         x = m.normalize(validation_data['x'], 255)
         y = m.output2binary(validation_data['y'][0])
@@ -156,7 +168,7 @@ class NeuralNetwork:
 
         model_shape = model_info['model']
         model_settings = model_info['config']
+        dropout_chance = model_info['config']['dropout_chance']
 
-        nn = NeuralNetwork(model_shape, model_settings)
-
+        nn = NeuralNetwork(model_shape, model_settings, dropout_probability=dropout_chance)
         return nn

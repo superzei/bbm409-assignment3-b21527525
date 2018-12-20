@@ -15,6 +15,9 @@ class Layer:
         # count of weights = count of previous layers nodes
         self.weights = np.array([])
 
+        # biases
+        self.bias = np.array([])
+
         # raw values of nodes
         self.input = np.array([])
 
@@ -22,7 +25,7 @@ class Layer:
         self.output = np.array([])
 
         # calculated error
-        self.error = np.array([])
+        self.previous_delta = np.array([])
         self.delta = np.zeros((1, self.node_count))
 
         self.previous_layer = None
@@ -39,10 +42,12 @@ class Layer:
         # initialize weights
         self.weights = np.random.randn(next_layer.node_count, self.node_count)
 
+        # initialize bias
+        self.bias = np.random.randn(next_layer.node_count)
+
     def forward(self, dropout_probability=0.0):
-        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
+        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output) + self.previous_layer.bias
         self.output = self.dropout(self.activation_function(self.input), drop_probability=dropout_probability)
-        # self.output = self.activation_function(self.input)
         self.next_layer.forward(dropout_probability=dropout_probability)
 
     def calculate_delta(self):
@@ -51,9 +56,21 @@ class Layer:
 
         self.previous_layer.calculate_delta()
 
-    def update(self):
-        self.weights -= (self.next_layer.delta * self.output.reshape(-1, 1) * self.learning_rate).T
-        self.next_layer.update()
+    def update(self, momentum_parameter=1.0):
+        """ update the weights and bias """
+        update = (self.next_layer.delta * self.output.reshape(-1, 1) * self.learning_rate).T
+
+        # initialize the momentum
+        if self.next_layer.previous_delta.size == 0:
+            self.next_layer.previous_delta = np.zeros(update.shape)
+
+        self.weights -= (update + ((1 - momentum_parameter) * self.next_layer.previous_delta))
+        self.bias -= (self.next_layer.delta * self.learning_rate)
+
+        # update the momentum
+        self.next_layer.previous_delta = update
+
+        self.next_layer.update(momentum_parameter=momentum_parameter)
 
     def clean(self):
         """ clean temps, just in case """
@@ -67,7 +84,9 @@ class Layer:
         keep_probability = 1 - drop_probability
         mask = np.random.uniform(0.0, 1.0, size=x.shape) < keep_probability
 
-        if keep_probability > 0.0:
+        if keep_probability == 1:
+            return x
+        elif keep_probability > 0.0:
             scale = (1 / keep_probability)
         else:
             scale = 0.0
@@ -129,15 +148,16 @@ class OutputLayer(Layer):
         self.previous_layer.calculate_delta()
 
     def forward(self, dropout_probability=0.0):
-        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output)
+        self.input = np.dot(self.previous_layer.weights, self.previous_layer.output) + self.previous_layer.bias
         self.output = self.activation_function(self.input)
         # self.output = self.activation_function(self.input)
         self.predicted = self.output
 
-    def update(self):
+    def update(self, momentum_parameter=1.0):
         """ stop after reaching output layer """
         pass
 
     def clean(self):
         """ squeaky clean """
         super().clean()
+        self.cost = 0.0
