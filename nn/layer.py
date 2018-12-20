@@ -149,7 +149,6 @@ class OutputLayer(Layer):
     def forward(self, dropout_probability=0.0):
         self.input = np.dot(self.previous_layer.weights, self.previous_layer.output) + self.previous_layer.bias
         self.output = self.activation_function(self.input)
-        # self.output = self.activation_function(self.input)
         self.predicted = self.output
 
     def update(self, momentum_parameter=1.0):
