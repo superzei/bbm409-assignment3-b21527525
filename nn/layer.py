@@ -1,6 +1,5 @@
 import nn.math_ as m
 import numpy as np
-from math import log
 np.random.seed(100)
 
 
