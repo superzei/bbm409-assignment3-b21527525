@@ -2,5 +2,5 @@
 .git/
 main.py
 data/flowers/
-trained_models/
 report/.ipynb_checkpoints/
+*.pkl

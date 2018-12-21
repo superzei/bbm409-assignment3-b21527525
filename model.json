@@ -8,12 +8,6 @@
       "activation": ""
     },
 
-    "hidden_1":
-    {
-      "node_count": 100,
-      "activation": "sigmoid"
-    },
-
     "output":
     {
       "node_count": 5,

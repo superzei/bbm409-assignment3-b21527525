@@ -10,7 +10,7 @@ DEFAULT_DUMP_FILE = 'trained_model.pkl'  # default model file name
 SHOW_PLOT = True  # show graph of change in accuracy and loss over epochs
 VALIDATE_DATA = True  # use a validation on training (requires validation path from cli)
 DUMP_BEST_MODEL = True  # only dump model if accuracy improved
-VISUALIZE = False  # visualize output layers parameters as image, only for single layer
+VISUALIZE = True  # visualize output layers parameters as image, only for single layer
 
 
 def parameter_parse(argv):
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     NN = NeuralNetwork.create(args['template_path'])
 
     if len(NN.network) > 2:
-        # if not single layer network do not visualize
+        # if not single layer network do not visualize even if flag is set
         VISUALIZE = False
 
     # log the data for graph
@@ -133,11 +133,11 @@ if __name__ == '__main__':
             for im in NN.out_layer.previous_layer.weights:
                 ims.append(im.reshape(32, 24))
 
-            axs[1, 0].imshow(ims[0])
-            axs[1, 1].imshow(ims[1])
-            axs[2, 0].imshow(ims[2])
-            axs[2, 1].imshow(ims[3])
-            axs[3, 0].imshow(ims[4])
+            axs[1, 0].imshow(ims[0], cmap='gray')
+            axs[1, 1].imshow(ims[1], cmap='gray')
+            axs[2, 0].imshow(ims[2], cmap='gray')
+            axs[2, 1].imshow(ims[3], cmap='gray')
+            axs[3, 0].imshow(ims[4], cmap='gray')
 
             fig.delaxes(axs[3, 1])
 
