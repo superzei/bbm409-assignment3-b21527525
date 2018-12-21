@@ -3,4 +3,3 @@
 main.py
 data/flowers/
 report/.ipynb_checkpoints/
-*.pkl
