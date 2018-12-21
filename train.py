@@ -29,12 +29,12 @@ def parameter_parse(argv):
     parser.add_argument('--validation_path', '-v', required=False, type=str, default='data/code/validation.mat',
                         dest='validation_path', help='path to validation data')
 
-    # TODO: add model training from json file
-
     return vars(parser.parse_args(argv))
 
 
 if __name__ == '__main__':
+    # TODO: add pre-trained models in trained models
+    # TODO: clean trained models
 
     # parse command line arguments
     args = parameter_parse(sys.argv[1:])
