@@ -9,6 +9,3 @@ Try adding -h to main files. It's there for a reason.
 ### Why so mean?
 It's late, I'm sleepy and been busy with same assignment more than 3 weeks and all of my attempts to improve it was futile.
 
-GO. FIGURE. 
-
-
